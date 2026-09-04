@@ -1,0 +1,30 @@
+# --- Projektdaten: NIEMALS ins oeffentliche Repo --------------------------
+/plaene/
+/aufmass/
+/offerten/
+/fotos/
+/projektdaten/
+*.hausplan
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.heic
+!/public/**/*.png
+!/public/**/*.svg
+
+# --- Node / Build ---------------------------------------------------------
+node_modules/
+dist/
+dist-single/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# --- Werkzeuge ------------------------------------------------------------
+.claude/
+CLAUDE.local.md
+.env
+.env.local
+.DS_Store
+Thumbs.db

@@ -1,0 +1,33 @@
+# --- Projektdaten: NIEMALS ins öffentliche Repo ---------------------------
+# Grundrisse, Aufmasse, Offerten, Fotos. Diese Zeilen sind der wichtigste
+# Teil dieser Datei. Nicht entfernen.
+/plaene/
+/aufmass/
+/offerten/
+/fotos/
+/projektdaten/
+*.hausplan
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.heic
+# Ausnahme: Bilder, die zur App gehören (Icons, Logos)
+!/public/**/*.png
+!/public/**/*.svg
+
+# --- Node / Build ---------------------------------------------------------
+node_modules/
+dist/
+dist-single/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# --- Werkzeuge ------------------------------------------------------------
+.claude/
+CLAUDE.local.md
+.env
+.env.local
+.DS_Store
+Thumbs.db

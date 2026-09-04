@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    /* Ziel und Auflösung – Vite bündelt, TypeScript prüft nur. */
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+
+    /* Strenge. Die drei Flags unter strict sind Projektvorgabe und bleiben an. */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src", "tests", "vite.config.ts", "vite.config.single.ts"]
+}

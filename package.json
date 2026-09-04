@@ -1,0 +1,26 @@
+{
+  "name": "hausplaner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Planungswerkzeug für den Innenausbau eines bestehenden EFH",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "vite build",
+    "build:single": "vite build --config vite.config.single.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^5.0.0"
+  }
+}

@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Badplaner DG – 3.20 × 2.50 m</title>
+<style>
+:root{
+  --paper:#FCFCFA;
+  --ink:#16232B;
+  --ink-2:#54646E;
+  --ink-3:#8A99A2;
+  --rule:#D6DCE0;
+  --chrome:#EEF1F2;
+  --panel:#FFFFFF;
+  --poche:#2C3E48;
+  --sel:#0E7C86;
+  --err:#C41E4C;
+  --warn:#A8690A;
+  --ok:#2E7D4F;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  --ui:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--ui);color:var(--ink);background:var(--chrome);
+  font-size:14px;line-height:1.45;overflow:hidden;
+}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- Gerüst ---------- */
+#app{display:grid;grid-template-columns:264px 1fr 300px;height:100%}
+aside{background:var(--panel);overflow-y:auto;display:flex;flex-direction:column}
+#left{border-right:1px solid var(--rule)}
+#right{border-left:1px solid var(--rule)}
+#stage{display:flex;flex-direction:column;min-width:0;background:var(--chrome)}
+
+.brand{padding:14px 16px 12px;border-bottom:1px solid var(--rule)}
+.brand h1{font-size:14px;font-weight:650;letter-spacing:-0.01em}
+.brand p{font-size:11.5px;color:var(--ink-2);margin-top:2px}
+.brand .num{color:var(--ink)}
+
+.grp{border-bottom:1px solid var(--rule)}
+.grp>summary{
+  list-style:none;cursor:pointer;padding:11px 16px;display:flex;
+  justify-content:space-between;align-items:center;
+  font-size:10.5px;letter-spacing:0.09em;text-transform:uppercase;
+  font-weight:650;color:var(--ink-2);user-select:none;
+}
+.grp>summary::-webkit-details-marker{display:none}
+.grp>summary::after{content:"+";font-family:var(--mono);color:var(--ink-3)}
+.grp[open]>summary::after{content:"–"}
+.grp>summary:hover{background:#F6F8F9}
+.body{padding:2px 16px 16px}
+
+/* ---------- Steuerelemente ---------- */
+.row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.row>label{flex:0 0 92px;font-size:11.5px;color:var(--ink-2)}
+input[type=number],input[type=text],select{
+  width:100%;padding:5px 7px;border:1px solid var(--rule);border-radius:3px;
+  background:#fff;font-family:var(--mono);font-size:12.5px;
+}
+input[type=number]:focus,select:focus,input[type=text]:focus{
+  outline:2px solid var(--sel);outline-offset:-1px;border-color:var(--sel)
+}
+.unit{font-size:11px;color:var(--ink-3);flex:0 0 auto;font-family:var(--mono)}
+.btn{
+  padding:6px 10px;border:1px solid var(--rule);background:#fff;border-radius:3px;
+  cursor:pointer;font-size:12.5px;text-align:left;
+}
+.btn:hover{border-color:var(--ink-3);background:#F6F8F9}
+.btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.wide{width:100%}
+.btn.danger:hover{border-color:var(--err);color:var(--err)}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap}
+.seg{display:flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.seg button{flex:1;border:0;background:#fff;padding:5px 4px;cursor:pointer;font-size:11.5px;border-right:1px solid var(--rule)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--ink);color:#fff}
+.chk{display:flex;gap:7px;align-items:center;font-size:12.5px;margin-bottom:5px;cursor:pointer}
+.chk input{width:14px;height:14px;accent-color:var(--sel)}
+
+/* ---------- Katalog ---------- */
+.cat{display:flex;flex-direction:column;gap:3px}
+.cat h4{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin:9px 0 3px;font-weight:600}
+.cat button{
+  display:flex;justify-content:space-between;gap:8px;align-items:baseline;
+  padding:6px 8px;border:1px solid transparent;border-radius:3px;background:#fff;
+  cursor:pointer;text-align:left;width:100%;
+}
+.cat button:hover{border-color:var(--rule);background:#F6F8F9}
+.cat b{font-weight:500;font-size:12.5px}
+.cat span{font-family:var(--mono);font-size:11px;color:var(--ink-3);white-space:nowrap}
+
+/* ---------- Toolbar ---------- */
+#bar{
+  display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--panel);
+  border-bottom:1px solid var(--rule);flex-wrap:wrap;
+}
+#bar .sp{flex:1}
+#bar .meta{font-size:11.5px;color:var(--ink-2);font-family:var(--mono)}
+#canvaswrap{flex:1;overflow:auto;padding:20px;display:grid;place-items:center}
+#plan{touch-action:none;background:var(--paper);box-shadow:0 1px 2px rgba(20,35,45,.10),0 12px 32px -18px rgba(20,35,45,.5);display:block}
+#plan.measuring{cursor:crosshair}
+
+/* ---------- Prüfliste ---------- */
+.issue{display:flex;gap:8px;padding:7px 8px;border-radius:3px;margin-bottom:4px;font-size:12px;line-height:1.4;cursor:default}
+.issue.e{background:#FDEEF2;color:#8A1236}
+.issue.w{background:#FDF4E3;color:#7A4B05}
+.issue.i{background:#F1F4F6;color:var(--ink-2)}
+.issue.k{background:#EDF6F0;color:#1E5C39}
+.issue b{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;flex:0 0 auto;padding-top:1px;opacity:.75}
+.issue.clickable{cursor:pointer}
+.issue.clickable:hover{filter:brightness(.97)}
+
+.stat{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dotted var(--rule)}
+.stat span:last-child{font-family:var(--mono)}
+.note{font-size:11.5px;color:var(--ink-2);line-height:1.5}
+.note code{font-family:var(--mono);font-size:11px;background:var(--chrome);padding:0 3px;border-radius:2px}
+.tag{display:inline-block;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  padding:1px 5px;border-radius:2px;font-weight:650;vertical-align:1px}
+.tag.v{background:#E4F0E9;color:#2E7D4F}
+.tag.u{background:#FDF4E3;color:#8A5405}
+.tag.x{background:#FDEEF2;color:#A5164A}
+dl.data{font-size:12px}
+dl.data dt{color:var(--ink-2);margin-top:7px;font-size:11px}
+dl.data dd{font-family:var(--mono);font-size:12.5px}
+
+#empty{font-size:12.5px;color:var(--ink-3);padding:6px 0}
+.kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border-bottom-width:2px;
+  border-radius:3px;padding:0 4px;background:#fff;color:var(--ink-2)}
+
+/* ---------- Responsiv ---------- */
+@media (max-width:1080px){
+  #app{grid-template-columns:1fr;grid-template-rows:auto 1fr auto;overflow-y:auto;height:auto}
+  body{overflow:auto}
+  aside{max-height:46vh;border:0;border-bottom:1px solid var(--rule)}
+  #right{border-top:1px solid var(--rule)}
+  #canvaswrap{padding:10px}
+}
+
+/* ---------- Druck: Massstab 1:25 auf A4 quer ---------- */
+@media print{
+  body{background:#fff;overflow:visible}
+  #app{display:block;height:auto}
+  aside,#bar{display:none!important}
+  #canvaswrap{padding:0;display:block;overflow:visible}
+  #plan{box-shadow:none;width:var(--print-w)!important;height:auto!important}
+  @page{size:A4 landscape;margin:12mm}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ======================= LINKS ======================= -->
+<aside id="left">
+  <div class="brand">
+    <h1>Badplaner Dachgeschoss</h1>
+    <p>Lichtes Mass <span class="num">320 × 250 cm</span> · <span class="num">8.00 m²</span> · innenliegend</p>
+  </div>
+
+  <details class="grp" open>
+    <summary>Varianten</summary>
+    <div class="body">
+      <div class="cat" id="presets"></div>
+      <p class="note" style="margin-top:8px">Varianten sind Vorschläge. Nach dem Laden prüft die App sie automatisch – die Meldungen rechts gelten also auch für sie.</p>
+    </div>
+  </details>
+
+  <details class="grp" open>
+    <summary>Objekte einfügen</summary>
+    <div class="body"><div class="cat" id="catalog"></div></div>
+  </details>
+
+  <details class="grp">
+    <summary>Raumdaten &amp; Bestand</summary>
+    <div class="body" id="roomform"></div>
+  </details>
+
+  <details class="grp">
+    <summary>Dachschräge</summary>
+    <div class="body" id="slopeform"></div>
+  </details>
+
+  <details class="grp">
+    <summary>Darstellung</summary>
+    <div class="body" id="viewform"></div>
+  </details>
+
+  <details class="grp">
+    <summary>Datei</summary>
+    <div class="body">
+      <div class="btnrow">
+        <button class="btn" onclick="saveJSON()">Projekt sichern</button>
+        <button class="btn" onclick="document.getElementById('loadfile').click()">Projekt laden</button>
+        <button class="btn" onclick="saveSVG()">Plan als SVG</button>
+        <button class="btn" onclick="window.print()">Drucken 1:25</button>
+      </div>
+      <input type="file" id="loadfile" accept=".json" style="display:none" onchange="loadJSON(event)">
+      <p class="note" style="margin-top:8px">Der Druck ist auf A4 quer im Massstab 1:25 angelegt – Seitenskalierung im Druckdialog auf 100 % stellen, sonst stimmt der Massstab nicht.</p>
+    </div>
+  </details>
+</aside>
+
+<!-- ======================= MITTE ======================= -->
+<main id="stage">
+  <div id="bar">
+    <div class="seg" style="width:190px" id="snapseg"></div>
+    <button class="btn" id="measurebtn" onclick="toggleMeasure()">Messen</button>
+    <button class="btn" onclick="fitZoom()">Einpassen</button>
+    <span class="meta" id="zoomlab"></span>
+    <div class="sp"></div>
+    <span class="meta" id="areameta"></span>
+    <button class="btn danger" onclick="clearAll()">Leeren</button>
+  </div>
+  <div id="canvaswrap"><svg id="plan"></svg></div>
+</main>
+
+<!-- ======================= RECHTS ======================= -->
+<aside id="right">
+  <details class="grp" open>
+    <summary>Auswahl</summary>
+    <div class="body" id="props"><div id="empty">Kein Objekt gewählt. Objekt im Plan anklicken.<br><br>
+      <span class="kbd">←↑→↓</span> 1 cm · <span class="kbd">Shift</span>+Pfeil 10 cm · <span class="kbd">R</span> drehen ·
+      <span class="kbd">D</span> duplizieren · <span class="kbd">Entf</span> löschen</div></div>
+  </details>
+
+  <details class="grp" open>
+    <summary>Prüfung</summary>
+    <div class="body" id="issues"></div>
+  </details>
+
+  <details class="grp" open>
+    <summary>Kennzahlen</summary>
+    <div class="body" id="stats"></div>
+  </details>
+
+  <details class="grp">
+    <summary>Datengrundlage</summary>
+    <div class="body" id="sources"></div>
+  </details>
+</aside>
+</div>
+
+<script>
+"use strict";
+/* =======================================================================
+   BADPLANER – alle Längen in cm, Ursprung = innere Raumecke Nord-West.
+   x → Osten (0…320), y → Süden (0…250). Drehung nur 0/90/180/270.
+   ======================================================================= */
+
+const R2 = v => Math.round(v*100)/100;
+const clamp = (v,a,b) => Math.min(b,Math.max(a,v));
+
+/* ---------------- Konfiguration ---------------- */
+const CFG = {
+  room:{w:320,d:250},
+  wall:{n:12,w:12,s:12,e:32},
+  door:{wall:'W',off:96,rough:78,clear:75,hinge:'A',swing:'in'}, // hinge A = kleinere Koordinate
+  shaft:{on:true,x:277,y:0,w:43,d:43},
+  slope:{on:false,wall:'N',knee:10,angle:45,max:210},
+  floor:{okff:270,okrd:261},
+  level:'min',
+  show:{clear:true,dims:true,chain:true,grid:true,slope:true,labels:true},
+  snap:5
+};
+
+/* ---------------- Bewegungsflächen ----------------
+   min  = untere Praxisgrenze (DIN 68935 / VDI 6000 / ehem. DIN 18022)
+   komf = empfohlener Komfortwert                                        */
+const CLEAR = {
+  tub:    {min:{front:75,side:0 }, komf:{front:105,side:0 }},
+  shower: {min:{front:75,side:0 }, komf:{front:90, side:0 }},
+  wc:     {min:{front:60,side:20}, komf:{front:90, side:25}},
+  vanity: {min:{front:55,side:20}, komf:{front:90, side:25}},
+  washer: {min:{front:90,side:0 }, komf:{front:90, side:0 }},
+  bidet:  {min:{front:60,side:25}, komf:{front:90, side:25}}
+};
+
+/* ---------------- Mindesthöhen unter der Schräge (cm) ---------------- */
+const HEAD = {
+  shower:{over:200,front:200,label:'Dusche'},
+  vanity:{over:150,front:190,label:'Waschtisch'},
+  wc:    {over:145,front:190,label:'WC'},
+  tub:   {over:100,front:190,label:'Badewanne'},
+  washer:{over:150,front:190,label:'Waschmaschine'},
+  bidet: {over:145,front:190,label:'Bidet'}
+};
+
+/* ---------------- Objektkatalog ---------------- */
+const T = {
+  /* Wannen */
+  tub_170:{g:'Badewannen',n:'Badewanne 170×75',t:'tub',w:170,h:75},
+  tub_180:{g:'Badewannen',n:'Badewanne 180×80',t:'tub',w:180,h:80},
+  tub_181:{g:'Badewannen',n:'Bestandswanne 181×80',t:'tub',w:181,h:80},
+  tub_160:{g:'Badewannen',n:'Badewanne 160×70',t:'tub',w:160,h:70},
+  tub_150:{g:'Badewannen',n:'Badewanne 150×70',t:'tub',w:150,h:70},
+  tub_140:{g:'Badewannen',n:'Badewanne 140×70',t:'tub',w:140,h:70},
+  tub_130:{g:'Badewannen',n:'Raumsparwanne 130×70',t:'tub',w:130,h:70},
+  tub_free:{g:'Badewannen',n:'Freistehend 170×80',t:'tub',w:170,h:80,free:true},
+  /* Duschen */
+  sh_9090:{g:'Duschen',n:'Duschwanne 90×90',t:'shower',w:90,h:90},
+  sh_9696:{g:'Duschen',n:'Bestandsdusche 96×96',t:'shower',w:96,h:96},
+  sh_10090:{g:'Duschen',n:'Dusche 100×90',t:'shower',w:100,h:90},
+  sh_12090:{g:'Duschen',n:'Walk-In 120×90',t:'shower',w:120,h:90},
+  sh_12790:{g:'Duschen',n:'Walk-In 127×90 (Mass)',t:'shower',w:127,h:90},
+  sh_13090:{g:'Duschen',n:'Walk-In 130×90',t:'shower',w:130,h:90},
+  sh_17090:{g:'Duschen',n:'Walk-In 170×90',t:'shower',w:170,h:90},
+  sh_14090:{g:'Duschen',n:'Walk-In 140×90',t:'shower',w:140,h:90},
+  sh_16090:{g:'Duschen',n:'Walk-In 160×90',t:'shower',w:160,h:90},
+  sh_160100:{g:'Duschen',n:'Walk-In 160×100',t:'shower',w:160,h:100},
+  /* Waschtische */
+  wt_60:{g:'Waschtische',n:'Waschtisch 60×48',t:'vanity',w:60,h:48,basins:1},
+  wt_90:{g:'Waschtische',n:'Waschtisch 90×50',t:'vanity',w:90,h:50,basins:1},
+  wt_120:{g:'Waschtische',n:'Waschtisch 120×50',t:'vanity',w:120,h:50,basins:1},
+  wt_d140:{g:'Waschtische',n:'Doppel 140×50',t:'vanity',w:140,h:50,basins:2},
+  wt_d150:{g:'Waschtische',n:'Doppel 150×50',t:'vanity',w:150,h:50,basins:2},
+  wt_d160:{g:'Waschtische',n:'Doppel 160×55',t:'vanity',w:160,h:55,basins:2},
+  wtm_130:{g:'Waschtische',n:'Möbel 130 · Lavabo + Schrank',t:'vanity',w:130,h:50,basins:1,cab:40},
+  wtm_150:{g:'Waschtische',n:'Möbel 150 · Lavabo + Schrank',t:'vanity',w:150,h:50,basins:1,cab:40},
+  wtm_160:{g:'Waschtische',n:'Möbel 160 · Lavabo + Schrank',t:'vanity',w:160,h:50,basins:1,cab:45},
+  wtm_180:{g:'Waschtische',n:'Möbel 180 · Lavabo + Schrank',t:'vanity',w:180,h:50,basins:1,cab:50},
+  /* WC */
+  wc_vw20:{g:'WC & Bidet',n:'Wand-WC + Vorwand 20',t:'wc',w:50,h:74,vw:20},
+  wc_vw15:{g:'WC & Bidet',n:'Wand-WC + Vorwand 15',t:'wc',w:50,h:69,vw:15},
+  wc_pur:{g:'WC & Bidet',n:'Wand-WC in Wand',t:'wc',w:38,h:54,vw:0},
+  wc_stand:{g:'WC & Bidet',n:'Stand-WC + AP-Kasten',t:'wc',w:40,h:70,vw:18},
+  bidet:{g:'WC & Bidet',n:'Bidet 38×55',t:'bidet',w:38,h:55},
+  /* Möbel & Technik */
+  cab_40:{g:'Möbel & Technik',n:'Hochschrank 40×40',t:'cabinet',w:40,h:40},
+  cab_60:{g:'Möbel & Technik',n:'Hochschrank 60×40',t:'cabinet',w:60,h:40},
+  cab_120:{g:'Möbel & Technik',n:'Sideboard 120×40',t:'cabinet',w:120,h:40},
+  bench:{g:'Möbel & Technik',n:'Bank / Nische 80×40',t:'cabinet',w:80,h:40},
+  washer:{g:'Möbel & Technik',n:'Waschmaschine 60×60',t:'washer',w:60,h:60},
+  rad:{g:'Möbel & Technik',n:'Handtuchradiator 60×12',t:'radiator',w:60,h:12},
+  wall_90:{g:'Möbel & Technik',n:'Trennwand 90×12',t:'wall',w:90,h:12},
+  wall_120:{g:'Möbel & Technik',n:'Trennwand 120×12',t:'wall',w:120,h:12},
+  glass:{g:'Möbel & Technik',n:'Glaswand 100×2',t:'glass',w:100,h:2},
+  vorwand:{g:'Möbel & Technik',n:'Vorwand 100×20',t:'wall',w:100,h:20},
+  free:{g:'Möbel & Technik',n:'Freies Rechteck',t:'cabinet',w:60,h:40},
+  drain:{g:'Anschlüsse',n:'Ablauf DN110 (Bestand)',t:'point',w:16,h:16,dn:110},
+  drain56:{g:'Anschlüsse',n:'Ablauf DN56/63',t:'point',w:10,h:10,dn:63}
+};
+
+/* ---------------- Varianten ---------------- */
+const PRESETS = {
+  bestand:{n:'Ist-Zustand (Plan)',d:'Wanne, 96er Dusche, Stand-WC',
+    shaft:{x:277,y:0,w:43,d:43}, door:{swing:'in'},
+    items:[['tub_181',0,0,0],['sh_9696',181,0,0],['wc_stand',0,180,180],['wt_d150',160,200,180]]},
+
+  v1:{n:'1 · Wanne Süd, WT an der Ostwand',d:'Schacht NO · Tür wie heute',
+    shaft:{x:277,y:0,w:43,d:43}, door:{swing:'in'},
+    items:[['sh_14090',0,0,0],['wc_vw20',207,0,0],['tub_150',0,180,180],['wtm_150',270,80,90]]},
+
+  v2:{n:'2 · Wanne an der Ostwand',d:'Schacht NO · WT an der Südwand',
+    shaft:{x:277,y:0,w:43,d:43}, door:{swing:'in'},
+    items:[['sh_14090',0,0,0],['wc_vw20',170,0,0],['tub_150',250,100,90],['wtm_150',20,200,180]]},
+
+  v3:{n:'3 · Schiebetür, XL-Dusche',d:'Schacht NO · Wanne an der Westwand',
+    shaft:{x:277,y:0,w:43,d:43}, door:{swing:'slide'},
+    items:[['sh_17090',70,0,0],['tub_150',0,90,270],['wc_vw20',246,95,90],['wtm_150',145,200,180]]},
+
+  v4:{n:'4 · WC bleibt im Süd-Westen',d:'bestehender Abwasseranschluss beim WC',
+    shaft:{x:277,y:0,w:43,d:43}, door:{swing:'in'},
+    items:[['tub_150',0,0,0],['sh_12790',150,0,0],['wc_vw20',20,176,180],
+           ['wtm_150',150,200,180],['drain',37,205,0]]},
+
+  v5:{n:'5 · Nassbereich Nord (Schacht SO)',d:'nur falls der Fallstrang im Süd-Osten liegt',
+    shaft:{x:277,y:207,w:43,d:43}, door:{swing:'in'},
+    items:[['tub_150',0,0,0],['sh_12790',150,0,0],['wc_vw20',207,176,180],['wtm_150',20,200,180]]},
+
+  leer:{n:'Leerer Raum',d:'nur Bestand: Schacht, Tür',
+    shaft:{x:277,y:0,w:43,d:43}, door:{swing:'in'}, items:[]}
+};
+
+/* ---------------- Zustand ---------------- */
+let items=[], sel=null, uid=1, zoom=1, measure=null, measuring=false, drag=null;
+let planName='Ist-Zustand (Plan)';
+
+/* =========================== GEOMETRIE =========================== */
+function fp(it){                       // Grundriss-Rechteck (achsparallel)
+  const sw = it.rot===90||it.rot===270;
+  return {x:it.x,y:it.y,w:sw?it.h:it.w,h:sw?it.w:it.h};
+}
+function lrect(it,r){                  // lokales Rechteck → Welt-AABB
+  const f=fp(it), cx=f.x+f.w/2, cy=f.y+f.h/2, a=it.rot*Math.PI/180;
+  const s=Math.round(Math.sin(a)), c=Math.round(Math.cos(a));
+  const pt=(px,py)=>{const lx=px-it.w/2, ly=py-it.h/2;
+    return [cx+lx*c-ly*s, cy+lx*s+ly*c];};
+  const p1=pt(r.x,r.y), p2=pt(r.x+r.w,r.y+r.h);
+  return {x:R2(Math.min(p1[0],p2[0])),y:R2(Math.min(p1[1],p2[1])),
+          w:R2(Math.abs(p2[0]-p1[0])),h:R2(Math.abs(p2[1]-p1[1]))};
+}
+function clearRect(it){                // Bewegungsfläche vor dem Objekt
+  const c=CLEAR[it.t]; if(!c) return null;
+  const v=c[CFG.level==='min'?'min':'komf'];
+  return lrect(it,{x:0,y:it.h,w:it.w,h:v.front});
+}
+function frontNormal(it){              // Blickrichtung der Nutzung
+  if(!CLEAR[it.t]) return null;
+  return [{x:0,y:1},{x:-1,y:0},{x:0,y:-1},{x:1,y:0}][(it.rot/90)%4];
+}
+function sideRects(it){                // seitliche Abstandsflächen
+  const c=CLEAR[it.t]; if(!c) return [];
+  const v=c[CFG.level==='min'?'min':'komf']; if(!v.side) return [];
+  return [lrect(it,{x:-v.side,y:0,w:v.side,h:it.h}),
+          lrect(it,{x:it.w,y:0,w:v.side,h:it.h})];
+}
+function ovl(a,b,tol=0.5){
+  return a.x < b.x+b.w-tol && b.x < a.x+a.w-tol &&
+         a.y < b.y+b.h-tol && b.y < a.y+a.h-tol;
+}
+function inter(a,b){
+  const x=Math.max(a.x,b.x), y=Math.max(a.y,b.y);
+  const w=Math.min(a.x+a.w,b.x+b.w)-x, h=Math.min(a.y+a.h,b.y+b.h)-y;
+  return w>0&&h>0?{x,y,w,h}:null;
+}
+function shaftRect(){return CFG.shaft.on?{x:CFG.shaft.x,y:CFG.shaft.y,w:CFG.shaft.w,h:CFG.shaft.d}:null;}
+
+/* --- Tür: Öffnung und Schwenkfläche ------------------------------- */
+function doorGeo(){
+  const d=CFG.door, W=CFG.room.w, D=CFG.room.d, b=d.rough;
+  const sg = d.swing==='out'?-1:1;   // 'slide' erzeugt keine Schwenkfläche
+  const base= {W:{x:1,y:0},O:{x:-1,y:0},N:{x:0,y:1},S:{x:0,y:-1}}[d.wall];
+  const nrm = {x:base.x*sg, y:base.y*sg};
+  let a,g;
+  if(d.wall==='W'||d.wall==='O'){ const x=d.wall==='W'?0:W;
+    a={x,y:d.off}; g={x,y:d.off+b};
+  }else{ const y=d.wall==='N'?0:D;
+    a={x:d.off,y}; g={x:d.off+b,y}; }
+  const H = d.hinge==='A'?a:g;              // Drehpunkt
+  const P0= d.hinge==='A'?g:a;              // Blattende geschlossen
+  const P1= {x:H.x+nrm.x*b, y:H.y+nrm.y*b}; // Blattende offen (nach innen)
+  const swing={x:Math.min(H.x,P0.x,P1.x), y:Math.min(H.y,P0.y,P1.y),
+               w:Math.abs(P1.x-P0.x)||b,   h:Math.abs(P1.y-P0.y)||b};
+  swing.w=Math.max(H.x,P0.x,P1.x)-swing.x;
+  swing.h=Math.max(H.y,P0.y,P1.y)-swing.y;
+  const cross=(P0.x-H.x)*(P1.y-H.y)-(P0.y-H.y)*(P1.x-H.x);
+  return {a,g,H,P0,P1,swing,sweep:cross>0?1:0,wall:d.wall,b,nrm};
+}
+/* Rechteck gegen die Viertelkreisfläche des Türblatts */
+function hitsSwing(r){
+  if(CFG.door.swing!=='in') return false;
+  const dg=doorGeo(), q=inter(r,dg.swing); if(!q) return false;
+  const cx=clamp(dg.H.x,q.x,q.x+q.w), cy=clamp(dg.H.y,q.y,q.y+q.h);
+  return Math.hypot(cx-dg.H.x,cy-dg.H.y) < dg.b-1;
+}
+
+/* --- Lichte Höhe unter der Dachschräge ---------------------------- */
+function headAt(x,y){
+  const s=CFG.slope; if(!s.on) return null;
+  let d;
+  if(s.wall==='N') d=y; else if(s.wall==='S') d=CFG.room.d-y;
+  else if(s.wall==='W') d=x; else d=CFG.room.w-x;
+  return Math.min(s.max, s.knee + d*Math.tan(s.angle*Math.PI/180));
+}
+function distForHeight(h){             // Abstand von der Traufwand für Höhe h
+  const s=CFG.slope; if(!s.on) return null;
+  if(h<=s.knee) return 0;
+  if(h>s.max) return null;
+  return (h-s.knee)/Math.tan(s.angle*Math.PI/180);
+}
+function headRange(r){                 // min/max lichte Höhe über einem Rechteck
+  if(!CFG.slope.on) return null;
+  const pts=[[r.x,r.y],[r.x+r.w,r.y],[r.x,r.y+r.h],[r.x+r.w,r.y+r.h]].map(p=>headAt(p[0],p[1]));
+  return {min:Math.min(...pts),max:Math.max(...pts)};
+}
+
+/* =========================== PRÜFUNG =========================== */
+function analyse(){
+  const out=[], W=CFG.room.w, D=CFG.room.d;
+  const sh=shaftRect(), dg=doorGeo();
+  const push=(l,t,id)=>out.push({l,t,id});
+
+  /* Bestandsrestriktion Bodenaufbau */
+  const build = CFG.floor.okff-CFG.floor.okrd;
+  if(build<12) push('i',`Bodenaufbau nur ${build} cm (OKFF ${CFG.floor.okff} – OKRD ${CFG.floor.okrd}). Ein DN110-Abwasserrohr (11 cm) lässt sich darin nicht mit Gefälle führen – die WC-Lage bleibt faktisch an den Fallstrang gebunden, sofern die Decke nicht geöffnet wird.`);
+
+  items.forEach(it=>{
+    const f=fp(it), nm=it.n;
+
+    /* 1 Raumgrenzen */
+    if(f.x<-0.5||f.y<-0.5||f.x+f.w>W+0.5||f.y+f.h>D+0.5)
+      push('e',`${nm} liegt ausserhalb des Raumes.`,it.id);
+
+    /* 2 Kollision mit anderen Objekten */
+    items.forEach(o=>{
+      if(o.id<=it.id||o.t==='point'||it.t==='point') return;
+      const ov=inter(f,fp(o));
+      if(ov&&ov.w>0.5&&ov.h>0.5)
+        push('e',`${nm} überschneidet ${o.n} um ${R2(Math.min(ov.w,ov.h))} cm.`,it.id);
+    });
+
+    /* 3 Schacht */
+    if(sh&&it.t!=='point'&&ovl(f,sh)) push('e',`${nm} steht im Installationsschacht.`,it.id);
+
+    /* 4 Tür */
+    if(it.t!=='point'&&it.t!=='glass'&&hitsSwing(f))
+      push('e',`${nm} steht im Schwenkbereich des Türblatts (Radius ${dg.b} cm). Anschlag wechseln, Objekt verschieben oder Tür nach aussen öffnen.`,it.id);
+
+    /* 5 Bewegungsfläche */
+    const cr=clearRect(it);
+    if(cr){
+      if(cr.x<-0.5||cr.y<-0.5||cr.x+cr.w>W+0.5||cr.y+cr.h>D+0.5)
+        push('w',`Bewegungsfläche vor ${nm} reicht über die Wand hinaus.`,it.id);
+      items.forEach(o=>{
+        if(o.id===it.id||o.t==='point'||o.t==='glass') return;
+        const ov=inter(cr,fp(o));
+        if(ov&&ov.w>1&&ov.h>1)
+          push('w',`Bewegungsfläche vor ${nm} wird durch ${o.n} um ${R2(Math.min(ov.w,ov.h))} cm eingeengt.`,it.id);
+      });
+      if(sh&&inter(cr,sh)) push('w',`Bewegungsfläche vor ${nm} liegt teilweise im Schacht.`,it.id);
+    }
+
+    /* 6 Seitliche Abstände */
+    sideRects(it).forEach(sr=>{
+      const outside = sr.x<-0.5||sr.y<-0.5||sr.x+sr.w>W+0.5||sr.y+sr.h>D+0.5;
+      const need=CLEAR[it.t][CFG.level==='min'?'min':'komf'].side;
+      if(outside) push('w',`${nm}: seitlicher Abstand zur Wand unter ${need} cm.`,it.id);
+      if(sh&&inter(sr,sh)) push('w',`${nm}: seitlicher Abstand zum Schacht unter ${need} cm.`,it.id);
+      items.forEach(o=>{
+        if(o.id===it.id||o.t==='point'||o.t==='wall'||o.t==='glass') return;
+        if(inter(sr,fp(o))) push('w',`${nm}: seitlicher Mindestabstand zu ${o.n} unterschritten.`,it.id);
+      });
+    });
+
+    /* 7 Lichte Höhe */
+    const hd=HEAD[it.t], hr=headRange(f);
+    if(hd&&hr){
+      if(hr.min<hd.over)
+        push(hr.min<hd.over-25?'e':'w',
+          `${nm}: lichte Höhe über dem Objekt nur ${Math.round(hr.min)} cm, nötig ca. ${hd.over} cm.`,it.id);
+      const cr2=clearRect(it), hf=cr2?headRange(cr2):null;
+      if(hf&&hf.min<hd.front)
+        push('w',`${nm}: über der Bewegungsfläche nur ${Math.round(hf.min)} cm Stehhöhe, empfohlen ${hd.front} cm.`,it.id);
+    }
+
+    /* 8 Abwasser */
+    if(it.t==='wc'){
+      const pts=items.filter(o=>o.t==='point'&&o.dn>=90);
+      const ref = sh?[{x:sh.x+sh.w/2,y:sh.y+sh.h/2}]:[];
+      pts.forEach(p=>ref.push({x:fp(p).x+fp(p).w/2,y:fp(p).y+fp(p).h/2}));
+      if(ref.length){
+        const c={x:f.x+f.w/2,y:f.y+f.h/2};
+        const dmin=Math.min(...ref.map(p=>Math.hypot(p.x-c.x,p.y-c.y)));
+        if(dmin>120) push('w',`${nm}: ${Math.round(dmin)} cm bis zum nächsten DN110-Anschluss. Bei ${build} cm Bodenaufbau ist das ohne Deckenöffnung kaum ausführbar.`,it.id);
+        else if(dmin>60) push('i',`${nm}: ${Math.round(dmin)} cm bis zum DN110-Anschluss – Leitungsführung in der Vorwand prüfen.`,it.id);
+      }
+    }
+    if(it.t==='shower'&&build<12)
+      push('i',`${nm}: bodengleich bei ${build} cm Aufbau nur mit extraflacher Rinne bzw. Wandablauf (Bauhöhen ab ca. 5–7 cm) – vom Sanitärplaner bestätigen lassen.`,it.id);
+  });
+
+  /* 9 Durchgang zwischen einander zugewandten Apparaten + unbrauchbare Fugen */
+  const solids=items.filter(i=>i.t!=='point'&&i.t!=='glass').map(i=>({i,f:fp(i),n:frontNormal(i)}));
+  for(let a=0;a<solids.length;a++)for(let b=a+1;b<solids.length;b++){
+    const A=solids[a],B=solids[b];
+    const ox=Math.min(A.f.x+A.f.w,B.f.x+B.f.w)-Math.max(A.f.x,B.f.x);
+    const oy=Math.min(A.f.y+A.f.h,B.f.y+B.f.h)-Math.max(A.f.y,B.f.y);
+    const gap = oy<0?-oy : ox<0?-ox : 0;
+    if(gap>0.5&&gap<20&&((ox>10&&oy<0)||(oy>10&&ox<0)))
+      push('i',`Fuge von ${Math.round(gap)} cm zwischen ${A.i.n} und ${B.i.n} – zu schmal zum Reinigen, besser bündig stellen oder auf ≥ 20 cm öffnen.`);
+    if(A.n&&B.n&&A.n.x===-B.n.x&&A.n.y===-B.n.y){
+      const facing = (A.n.y!==0 && ox>30 && oy<0) || (A.n.x!==0 && oy>30 && ox<0);
+      if(facing&&gap<75)
+        push('w',`Nur ${Math.round(gap)} cm zwischen ${A.i.n} und ${B.i.n}, die sich gegenüberstehen (empfohlen ≥ 75 cm).`);
+    }
+  }
+
+  /* 10 Türlichte */
+  if(CFG.door.swing==='slide') push('i','Schiebetür gesetzt: der Schwenkbereich von rund 0.6 m² entfällt. Voraussetzung ist eine freie Schiebefläche im Gang oder eine Einbaukassette in der 12-cm-Wand – bei 12 cm Wandstärke braucht es dafür eine Vorsatzschale.');
+  if(CFG.door.swing==='out') push('i','Die Tür ist nach aussen öffnend gesetzt. Das entlastet den Raum, blockiert aber den Gang – Fluchtweg und Gangbreite prüfen. Alternative: Schiebetür.');
+  if(CFG.door.clear<80) push('i',`Türlichte ${CFG.door.clear} cm (Rohbau ${CFG.door.rough} cm). Unter 80 cm; für hindernisfreie Nutzung nach SIA 500 wären ≥ 80 cm nötig.`);
+
+  return out;
+}
+
+/* --- Kennzahlen: freie Fläche und grösstes freies Rechteck --------- */
+function metrics(){
+  const step=5, W=CFG.room.w, D=CFG.room.d;
+  const nx=Math.round(W/step), ny=Math.round(D/step);
+  const blocked=[], sh=shaftRect();
+  const solids=items.filter(i=>i.t!=='point'&&i.t!=='glass').map(fp);
+  if(sh) solids.push(sh);
+  for(let j=0;j<ny;j++){const row=[];
+    for(let i=0;i<nx;i++){
+      const c={x:i*step,y:j*step,w:step,h:step};
+      row.push(solids.some(s=>ovl(s,c,0.1))?0:1);
+    } blocked.push(row);}
+  let free=0; blocked.forEach(r=>r.forEach(v=>free+=v));
+  /* grösstes achsparalleles freies Rechteck (Histogramm-Methode) */
+  const hgt=new Array(nx).fill(0); let best={a:0,w:0,h:0};
+  for(let j=0;j<ny;j++){
+    for(let i=0;i<nx;i++) hgt[i]=blocked[j][i]?hgt[i]+1:0;
+    const st=[];
+    for(let i=0;i<=nx;i++){
+      const cur=i<nx?hgt[i]:0;
+      while(st.length&&hgt[st[st.length-1]]>=cur){
+        const h=hgt[st.pop()], l=st.length?st[st.length-1]+1:0;
+        const w=i-l, a=w*h;
+        if(a>best.a) best={a,w:w*step,h:h*step};
+      }
+      st.push(i);
+    }
+  }
+  return {freeArea:free*step*step/10000, total:W*D/10000, rect:best};
+}
+
+/* =========================== ZEICHNEN =========================== */
+const M=72;                                          // Bemassungsrand in cm
+function vb(){
+  return {x:-CFG.wall.w-M, y:-CFG.wall.n-M,
+          w:CFG.wall.w+CFG.room.w+CFG.wall.e+2*M,
+          h:CFG.wall.n+CFG.room.d+CFG.wall.s+2*M};
+}
+const esc = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function svgDimH(x1,x2,y,label,flip){
+  const t=flip?-1:1;
+  return `<g class="dim">
+    <line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}"/>
+    <line x1="${x1}" y1="${y-4}" x2="${x1}" y2="${y+4}"/>
+    <line x1="${x2}" y1="${y-4}" x2="${x2}" y2="${y+4}"/>
+    <text x="${(x1+x2)/2}" y="${y-3*t+(flip?9:0)}" text-anchor="middle">${label}</text></g>`;
+}
+function svgDimV(y1,y2,x,label,flip){
+  const cy=(y1+y2)/2;
+  return `<g class="dim">
+    <line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/>
+    <line x1="${x-4}" y1="${y1}" x2="${x+4}" y2="${y1}"/>
+    <line x1="${x-4}" y1="${y2}" x2="${x+4}" y2="${y2}"/>
+    <text x="${x}" y="${cy}" text-anchor="middle" transform="rotate(-90 ${x} ${cy})" dy="${flip?9:-3}">${label}</text></g>`;
+}
+
+function glyph(it){
+  const w=it.w,h=it.h,o=[];
+  const box=(cls,rx=0)=>`<rect x="0" y="0" width="${w}" height="${h}" rx="${rx}" class="${cls}"/>`;
+  switch(it.t){
+    case 'tub':
+      o.push(box('g-tub',it.free?Math.min(w,h)/2:4));
+      o.push(`<rect x="4" y="4" width="${w-8}" height="${h-8}" rx="${it.free?Math.min(w,h)/2-4:8}" class="g-in"/>`);
+      o.push(`<circle cx="${w-14}" cy="${h/2}" r="2.6" class="g-in"/>`);
+      break;
+    case 'shower':
+      o.push(box('g-shower'));
+      o.push(`<line x1="0" y1="${h}" x2="${w}" y2="${h}" class="g-open"/>`);
+      o.push(`<circle cx="${w/2}" cy="${h/2}" r="4" class="g-in"/>`);
+      o.push(`<line x1="${w/2-8}" y1="${h/2}" x2="${w/2+8}" y2="${h/2}" class="g-in"/>`);
+      break;
+    case 'wc':
+      if(it.vw) o.push(`<rect x="0" y="0" width="${w}" height="${it.vw}" class="g-vw"/>`);
+      o.push(`<rect x="${(w-38)/2}" y="${it.vw||0}" width="38" height="${h-(it.vw||0)}" rx="14" class="g-obj"/>`);
+      break;
+    case 'bidet':
+      o.push(`<rect x="0" y="0" width="${w}" height="${h}" rx="13" class="g-obj"/>`); break;
+    case 'vanity':
+      o.push(box('g-obj',2));
+      if(it.cab){
+        const cx0 = it.cabL?0:w-it.cab;
+        o.push(`<rect x="${cx0}" y="0" width="${it.cab}" height="${h}" class="g-cab"/>`);
+        o.push(`<line x1="${cx0}" y1="0" x2="${cx0+it.cab}" y2="${h}" class="g-in"/>`);
+        o.push(`<line x1="${cx0+it.cab}" y1="0" x2="${cx0}" y2="${h}" class="g-in"/>`);
+        const bx = it.cabL ? it.cab+(w-it.cab)*0.34 : (w-it.cab)*0.32;
+        o.push(`<ellipse cx="${bx}" cy="${h*0.52}" rx="21" ry="${h*0.3}" class="g-in"/>`);
+      }else{
+        const n=it.basins||1;
+        for(let i=0;i<n;i++){const cx=w*(i+0.5)/n;
+          o.push(`<ellipse cx="${cx}" cy="${h*0.52}" rx="${Math.min(19,w/(2.6*n))}" ry="${h*0.29}" class="g-in"/>`);}
+      }
+      break;
+    case 'washer': o.push(box('g-obj',1)); o.push(`<circle cx="${w/2}" cy="${h/2}" r="${Math.min(w,h)*0.3}" class="g-in"/>`); break;
+    case 'cabinet': o.push(box('g-cab',1));
+      o.push(`<line x1="0" y1="0" x2="${w}" y2="${h}" class="g-in"/><line x1="${w}" y1="0" x2="0" y2="${h}" class="g-in"/>`); break;
+    case 'radiator': o.push(box('g-obj',1));
+      for(let i=6;i<w;i+=8) o.push(`<line x1="${i}" y1="1" x2="${i}" y2="${h-1}" class="g-in"/>`); break;
+    case 'wall': o.push(box('g-wall')); break;
+    case 'glass': o.push(box('g-glass')); break;
+    case 'point':
+      o.push(`<circle cx="${w/2}" cy="${h/2}" r="${w/2}" class="g-point"/>`);
+      o.push(`<line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" class="g-in"/>`);
+      o.push(`<line x1="${w/2}" y1="0" x2="${w/2}" y2="${h}" class="g-in"/>`); break;
+    default: o.push(box('g-obj',1));
+  }
+  return o.join('');
+}
+
+function render(){
+  const V=vb(), W=CFG.room.w, D=CFG.room.d, wl=CFG.wall;
+  const sh=shaftRect(), dg=doorGeo(), s=[];
+
+  /* --- Wände als Poché ---------------------------------------- */
+  s.push(`<g class="poche">
+    <rect x="${-wl.w}" y="${-wl.n}" width="${wl.w+W+wl.e}" height="${wl.n}"/>
+    <rect x="${-wl.w}" y="${D}" width="${wl.w+W+wl.e}" height="${wl.s}"/>
+    <rect x="${-wl.w}" y="0" width="${wl.w}" height="${D}"/>
+    <rect x="${W}" y="0" width="${wl.e}" height="${D}"/>
+  </g>`);
+  s.push(`<rect x="0" y="0" width="${W}" height="${D}" class="floor"/>`);
+
+  /* --- Raster --------------------------------------------------- */
+  if(CFG.show.grid){
+    const g=[];
+    for(let x=10;x<W;x+=10) g.push(`<line x1="${x}" y1="0" x2="${x}" y2="${D}" class="${x%50?'gr':'gr5'}"/>`);
+    for(let y=10;y<D;y+=10) g.push(`<line x1="0" y1="${y}" x2="${W}" y2="${y}" class="${y%50?'gr':'gr5'}"/>`);
+    s.push(`<g>${g.join('')}</g>`);
+  }
+
+  /* --- Dachschräge ---------------------------------------------- */
+  if(CFG.slope.on&&CFG.show.slope){
+    const sc=CFG.slope, lines=[];
+    const dTo = h => { const d=distForHeight(h); return d===null?null:Math.min(d, sc.wall==='N'||sc.wall==='S'?D:W); };
+    const seg = (d,lab,cls)=>{
+      if(d===null) return '';
+      if(sc.wall==='N') return `<line x1="0" y1="${d}" x2="${W}" y2="${d}" class="${cls}"/><text x="${W-3}" y="${d-2}" text-anchor="end" class="iso">${lab}</text>`;
+      if(sc.wall==='S') return `<line x1="0" y1="${D-d}" x2="${W}" y2="${D-d}" class="${cls}"/><text x="${W-3}" y="${D-d+7}" text-anchor="end" class="iso">${lab}</text>`;
+      if(sc.wall==='W') return `<line x1="${d}" y1="0" x2="${d}" y2="${D}" class="${cls}"/><text x="${d+2}" y="10" class="iso">${lab}</text>`;
+      return `<line x1="${W-d}" y1="0" x2="${W-d}" y2="${D}" class="${cls}"/><text x="${W-d-2}" y="10" text-anchor="end" class="iso">${lab}</text>`;
+    };
+    const d200=dTo(200);
+    if(d200!==null&&d200>0){
+      const r = sc.wall==='N'?{x:0,y:0,w:W,h:d200}: sc.wall==='S'?{x:0,y:D-d200,w:W,h:d200}:
+                sc.wall==='W'?{x:0,y:0,w:d200,h:D}:{x:W-d200,y:0,w:d200,h:D};
+      lines.push(`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" class="slopezone"/>`);
+    }
+    [[100,'1.00 m'],[150,'1.50 m'],[190,'1.90 m'],[200,'2.00 m']].forEach(([h,l])=>lines.push(seg(dTo(h),l,'isoline')));
+    s.push(`<g>${lines.join('')}</g>`);
+  }
+
+  /* --- Schacht --------------------------------------------------- */
+  if(sh){
+    s.push(`<g><rect x="${sh.x}" y="${sh.y}" width="${sh.w}" height="${sh.h}" class="shaft"/>
+      <text x="${sh.x+sh.w/2}" y="${sh.y+sh.h/2-1}" text-anchor="middle" class="lbl">Schacht</text>
+      <text x="${sh.x+sh.w/2}" y="${sh.y+sh.h/2+8}" text-anchor="middle" class="lbl-s">DN110</text></g>`);
+  }
+
+  /* --- Tür -------------------------------------------------------- */
+  {
+    const d=CFG.door, b=d.rough;
+    const open = (d.wall==='W'||d.wall==='O')
+      ? `<rect x="${d.wall==='W'?-wl.w:W}" y="${d.off}" width="${d.wall==='W'?wl.w:wl.e}" height="${b}" class="opening"/>`
+      : `<rect x="${d.off}" y="${d.wall==='N'?-wl.n:D}" width="${b}" height="${d.wall==='N'?wl.n:wl.s}" class="opening"/>`;
+    let arc='', leaf='';
+    if(d.swing==='slide'){
+      const vert = d.wall==='W'||d.wall==='O';
+      const off  = d.wall==='W'?4 : d.wall==='O'?-4 : 0;
+      const offy = d.wall==='N'?4 : d.wall==='S'?-4 : 0;
+      leaf = vert
+        ? `<line x1="${dg.a.x+off}" y1="${dg.a.y}" x2="${dg.a.x+off}" y2="${dg.a.y+b}" class="leaf"/>
+           <line x1="${dg.a.x+off}" y1="${dg.a.y-b}" x2="${dg.a.x+off}" y2="${dg.a.y}" class="slide"/>`
+        : `<line x1="${dg.a.x}" y1="${dg.a.y+offy}" x2="${dg.a.x+b}" y2="${dg.a.y+offy}" class="leaf"/>
+           <line x1="${dg.a.x-b}" y1="${dg.a.y+offy}" x2="${dg.a.x}" y2="${dg.a.y+offy}" class="slide"/>`;
+    }else{
+      arc=`<path d="M ${dg.P0.x} ${dg.P0.y} A ${b} ${b} 0 0 ${dg.sweep} ${dg.P1.x} ${dg.P1.y}" class="swing"/>`;
+      leaf=`<line x1="${dg.H.x}" y1="${dg.H.y}" x2="${dg.P1.x}" y2="${dg.P1.y}" class="leaf"/>`;
+    }
+    s.push(`<g>${open}${arc}${leaf}</g>`);
+  }
+
+  /* --- Bewegungsflächen ------------------------------------------- */
+  if(CFG.show.clear){
+    const c=[];
+    items.forEach(it=>{
+      const r=clearRect(it); if(!r) return;
+      c.push(`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" class="clear${it.id===sel?' selc':''}"/>`);
+      sideRects(it).forEach(sr=>c.push(`<rect x="${sr.x}" y="${sr.y}" width="${sr.w}" height="${sr.h}" class="clear side"/>`));
+    });
+    s.push(`<g>${c.join('')}</g>`);
+  }
+
+  /* --- Objekte ----------------------------------------------------- */
+  const conflicts=new Set(analyse().filter(i=>i.l==='e'&&i.id).map(i=>i.id));
+  items.forEach(it=>{
+    const f=fp(it), cx=f.x+f.w/2, cy=f.y+f.h/2;
+    const tr=`translate(${cx} ${cy}) rotate(${it.rot}) translate(${-it.w/2} ${-it.h/2})`;
+    s.push(`<g class="item${it.id===sel?' sel':''}${conflicts.has(it.id)?' bad':''}" data-id="${it.id}">
+      <g transform="${tr}">${glyph(it)}</g>
+      ${CFG.show.labels&&f.w>34&&f.h>18&&it.t!=='point'
+        ? `<text x="${cx}" y="${cy-1}" text-anchor="middle" class="lbl">${esc(it.short)}</text>
+           <text x="${cx}" y="${cy+8}" text-anchor="middle" class="lbl-s">${it.w}×${it.h}</text>`:''}
+      ${it.t==='point'?`<text x="${cx}" y="${cy-11}" text-anchor="middle" class="lbl-s">DN${it.dn}</text>`:''}
+    </g>`);
+  });
+
+  /* --- Bemassung: Raum + Bestandskette ------------------------------ */
+  if(CFG.show.dims){
+    s.push(svgDimH(0,W,-wl.n-26,`${W}`,false));
+    s.push(svgDimV(0,D,-wl.w-26,`${D}`,false));
+    s.push(`<text x="${W/2}" y="${-wl.n-38}" text-anchor="middle" class="wl">Nordwand · Elternzimmer · ${wl.n} cm</text>`);
+    s.push(`<text x="${W/2}" y="${D+wl.s+34}" text-anchor="middle" class="wl">Südwand · Treppe · ${wl.s} cm</text>`);
+    s.push(`<text x="${W+wl.e+16}" y="${D/2}" text-anchor="middle" transform="rotate(90 ${W+wl.e+16} ${D/2})" class="wl">Ostwand · Nachbar · ${wl.e} cm</text>`);
+    s.push(`<text x="${-wl.w-42}" y="${D/2}" text-anchor="middle" transform="rotate(-90 ${-wl.w-42} ${D/2})" class="wl">Westwand · Gang · ${wl.w} cm</text>`);
+  }
+  if(CFG.show.chain&&CFG.door.wall==='W'){
+    const o=CFG.door.off,b=CFG.door.rough,x=-wl.w-8;
+    s.push(svgDimV(0,o,x,`${o}`,false));
+    s.push(svgDimV(o,o+b,x,`${b}`,false));
+    s.push(svgDimV(o+b,D,x,`${R2(D-o-b)}`,false));
+  }
+  if(CFG.show.chain&&CFG.shaft.on){
+    const y=-wl.n-8, x1=CFG.shaft.x;
+    s.push(svgDimH(0,x1,y,`${x1}`,false));
+    s.push(svgDimH(x1,W,y,`${R2(W-x1)}`,false));
+  }
+
+  /* --- Bemassung der Auswahl ---------------------------------------- */
+  const S=items.find(i=>i.id===sel);
+  if(S&&CFG.show.dims){
+    const f=fp(S), mx=f.x+f.w/2, my=f.y+f.h/2;
+    const seg=[];
+    if(f.x>0.4) seg.push(svgDimH(0,f.x,my,`${R2(f.x)}`,false));
+    if(W-f.x-f.w>0.4) seg.push(svgDimH(f.x+f.w,W,my,`${R2(W-f.x-f.w)}`,false));
+    if(f.y>0.4) seg.push(svgDimV(0,f.y,mx,`${R2(f.y)}`,false));
+    if(D-f.y-f.h>0.4) seg.push(svgDimV(f.y+f.h,D,mx,`${R2(D-f.y-f.h)}`,false));
+    s.push(`<g class="seldim">${seg.join('')}</g>`);
+    s.push(svgDimH(f.x,f.x+f.w,f.y-7,`${R2(f.w)}`,false));
+    s.push(svgDimV(f.y,f.y+f.h,f.x-7,`${R2(f.h)}`,false));
+  }
+
+  /* --- Messwerkzeug --------------------------------------------------- */
+  if(measure&&measure.b){
+    const a=measure.a,b=measure.b,d=Math.hypot(b.x-a.x,b.y-a.y);
+    s.push(`<g class="meas"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>
+      <circle cx="${a.x}" cy="${a.y}" r="2.5"/><circle cx="${b.x}" cy="${b.y}" r="2.5"/>
+      <text x="${(a.x+b.x)/2}" y="${(a.y+b.y)/2-4}" text-anchor="middle">${R2(d)} cm</text></g>`);
+  }
+
+  /* --- Massstabsbalken & Nordpfeil ------------------------------------ */
+  const by=D+wl.s+52;
+  s.push(`<g class="scalebar"><rect x="0" y="${by}" width="50" height="4"/><rect x="50" y="${by}" width="50" height="4" class="alt"/>
+    <text x="0" y="${by+13}" class="lbl-s">0</text><text x="100" y="${by+13}" text-anchor="middle" class="lbl-s">1 m</text></g>`);
+
+  /* --- Plankopf ------------------------------------------------------- */
+  {
+    const m=metrics(), n=analyse();
+    const rows=[
+      ['Variante', planName],
+      ['Lichtes Mass', `${W} × ${D} cm · ${(W*D/10000).toFixed(2)} m²`],
+      ['Bodenaufbau', `${CFG.floor.okff-CFG.floor.okrd} cm (OKFF ${CFG.floor.okff})`],
+      ['Bewegungsfläche', CFG.level==='min'?'Minimum':'Komfort'],
+      ['Freie Fläche', `${m.freeArea.toFixed(2)} m² · grösstes Feld ${m.rect.w}×${m.rect.h} cm`],
+      ['Prüfung', `${n.filter(i=>i.l==='e').length} Konflikte, ${n.filter(i=>i.l==='w').length} Warnungen`],
+      ['Massstab', '1:25 auf A4 quer']
+    ];
+    const tx=W+wl.e-158, ty=D+wl.s+16;
+    s.push(`<g class="tblock">
+      <line x1="${tx}" y1="${ty-8}" x2="${W+wl.e}" y2="${ty-8}"/>
+      ${rows.map((r,i)=>
+      `<text x="${tx}" y="${ty+i*8.5}" class="tb-k">${esc(r[0])}</text>
+       <text x="${tx+48}" y="${ty+i*8.5}" class="tb-v">${esc(r[1])}</text>`).join('')}</g>`);
+  }
+  s.push(`<g class="north" transform="translate(${W+wl.e+38} ${-wl.n-20})">
+    <line x1="0" y1="16" x2="0" y2="-16"/><path d="M 0 -20 L 5 -8 L -5 -8 Z"/>
+    <text x="0" y="-24" text-anchor="middle" class="lbl-s">N</text></g>`);
+
+  const el=document.getElementById('plan');
+  el.setAttribute('viewBox',`${V.x} ${V.y} ${V.w} ${V.h}`);
+  el.style.width = (V.w*zoom*3.0)+'px';
+  el.style.height= (V.h*zoom*3.0)+'px';
+  document.documentElement.style.setProperty('--print-w',(V.w/2.5)+'mm');
+  el.innerHTML = `<style>${PLANCSS}</style>${s.join('')}`;
+  el.classList.toggle('measuring',measuring);
+  el.querySelectorAll('.item').forEach(g=>g.addEventListener('pointerdown',onItemDown));
+  document.getElementById('zoomlab').textContent = Math.round(zoom*100)+' %';
+  paintPanels();
+}
+
+const PLANCSS=`
+  text{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;fill:#54646E}
+  line,rect,path,circle,ellipse{vector-effect:non-scaling-stroke}
+  .poche rect{fill:#2C3E48}
+  .floor{fill:#FCFCFA}
+  .gr{stroke:#E6EBEE;stroke-width:.5px;fill:none}
+  .gr5{stroke:#D5DEE3;stroke-width:.7px;fill:none}
+  .shaft{fill:#C6D0D6;stroke:#2C3E48;stroke-width:1px}
+  .opening{fill:#FCFCFA;stroke:none}
+  .swing{fill:none;stroke:#A9B7BF;stroke-width:.8px;stroke-dasharray:3 2}
+  .leaf{stroke:#7E8F98;stroke-width:1.6px}
+  .slide{stroke:#A9B7BF;stroke-width:1.4px;stroke-dasharray:5 3}
+  .slopezone{fill:#16232B;opacity:.055}
+  .isoline{stroke:#8A99A2;stroke-width:.8px;stroke-dasharray:6 3;fill:none}
+  .iso{font-size:7px;fill:#8A99A2}
+  .clear{fill:#0E7C86;opacity:.055;stroke:#0E7C86;stroke-width:.7px;stroke-dasharray:4 3}
+  .clear.side{opacity:.03;stroke-dasharray:2 3}
+  .clear.selc{opacity:.11}
+  .item{cursor:move}
+  .g-tub,.g-shower,.g-obj,.g-cab{fill:#fff;stroke:#2C3E48;stroke-width:1.1px}
+  .g-shower{fill:#F2F6F7}
+  .g-cab{fill:#F4F1F6}
+  .g-vw{fill:#D3DBDF;stroke:#2C3E48;stroke-width:1.1px}
+  .g-wall{fill:#8FA0A9;stroke:#2C3E48;stroke-width:1px}
+  .g-glass{fill:#0E7C86;opacity:.5;stroke:#0E7C86;stroke-width:1px}
+  .g-point{fill:#fff;stroke:#C41E4C;stroke-width:1.3px}
+  .g-in{fill:none;stroke:#9FAEB6;stroke-width:.8px}
+  .g-open{stroke:#0E7C86;stroke-width:2px;stroke-dasharray:5 3}
+  .item.sel .g-tub,.item.sel .g-shower,.item.sel .g-obj,.item.sel .g-cab,
+  .item.sel .g-vw,.item.sel .g-wall{stroke:#0E7C86;stroke-width:2px}
+  .item.bad .g-tub,.item.bad .g-shower,.item.bad .g-obj,.item.bad .g-cab,
+  .item.bad .g-vw,.item.bad .g-wall{stroke:#C41E4C;stroke-width:2px}
+  .lbl{font-size:8px;fill:#16232B}
+  .lbl-s{font-size:6.5px;fill:#7E8F98}
+  .wl{font-size:7px;fill:#8A99A2;letter-spacing:.04em}
+  .dim line{stroke:#54646E;stroke-width:.7px}
+  .dim text{font-size:8.5px;fill:#16232B}
+  .seldim line{stroke:#0E7C86}
+  .seldim text{fill:#0E7C86}
+  .meas line{stroke:#C41E4C;stroke-width:1.2px}
+  .meas circle{fill:#C41E4C}
+  .meas text{font-size:9px;fill:#C41E4C}
+  .scalebar rect{fill:#16232B}
+  .scalebar rect.alt{fill:#fff;stroke:#16232B;stroke-width:.8px}
+  .tblock line{stroke:#54646E;stroke-width:.8px}
+  .tb-k{font-size:5.2px;fill:#8A99A2;letter-spacing:.05em}
+  .tb-v{font-size:5.8px;fill:#16232B}
+  .north line{stroke:#54646E;stroke-width:1px}
+  .north path{fill:#54646E}
+`;
+
+/* =========================== INTERAKTION =========================== */
+function svgPoint(e){
+  const el=document.getElementById('plan'), r=el.getBoundingClientRect(), V=vb();
+  return {x:V.x+(e.clientX-r.left)/r.width*V.w, y:V.y+(e.clientY-r.top)/r.height*V.h};
+}
+function snapVal(v){ return CFG.snap? Math.round(v/CFG.snap)*CFG.snap : R2(v); }
+
+/* magnetisches Andocken an Wände, Schacht und Objektkanten */
+function magnet(it,x,y){
+  const f=fp(it), tol=3.5, W=CFG.room.w, D=CFG.room.d;
+  const xs=[0,W-f.w], ys=[0,D-f.h];
+  const sh=shaftRect();
+  const edges=items.filter(o=>o.id!==it.id&&o.t!=='point').map(fp);
+  if(sh) edges.push(sh);
+  edges.forEach(o=>{ xs.push(o.x+o.w, o.x-f.w, o.x, o.x+o.w-f.w);
+                     ys.push(o.y+o.h, o.y-f.h, o.y, o.y+o.h-f.h); });
+  let bx=x,by=y,dx=tol,dy=tol;
+  xs.forEach(v=>{const d=Math.abs(v-x); if(d<dx){dx=d;bx=v;}});
+  ys.forEach(v=>{const d=Math.abs(v-y); if(d<dy){dy=d;by=v;}});
+  return {x:R2(bx),y:R2(by)};
+}
+
+function onItemDown(e){
+  if(measuring) return;
+  e.stopPropagation();
+  const id=+e.currentTarget.dataset.id, it=items.find(i=>i.id===id);
+  sel=id;
+  const p=svgPoint(e);
+  drag={id,ox:p.x-it.x,oy:p.y-it.y};
+  e.currentTarget.setPointerCapture?.(e.pointerId);
+  window.addEventListener('pointermove',onMove);
+  window.addEventListener('pointerup',onUp);
+  render();
+}
+function onMove(e){
+  if(!drag) return;
+  const it=items.find(i=>i.id===drag.id); if(!it) return;
+  const p=svgPoint(e);
+  let x=snapVal(p.x-drag.ox), y=snapVal(p.y-drag.oy);
+  const m=magnet(it,x,y); x=m.x; y=m.y;
+  const f=fp(it);
+  it.x=R2(clamp(x,-40,CFG.room.w-f.w+40));
+  it.y=R2(clamp(y,-40,CFG.room.d-f.h+40));
+  render();
+}
+function onUp(){ drag=null;
+  window.removeEventListener('pointermove',onMove);
+  window.removeEventListener('pointerup',onUp); }
+
+document.getElementById('plan').addEventListener('pointerdown',e=>{
+  const p=svgPoint(e);
+  if(measuring){
+    if(!measure||measure.b) measure={a:{x:R2(p.x),y:R2(p.y)},b:null};
+    else measure.b={x:R2(p.x),y:R2(p.y)};
+    render(); return;
+  }
+  if(e.target.closest('.item')) return;
+  sel=null; render();
+});
+
+document.addEventListener('keydown',e=>{
+  if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) return;
+  const it=items.find(i=>i.id===sel);
+  if(e.key==='Escape'){ sel=null; measuring=false; measure=null; render(); return; }
+  if(!it) return;
+  const st=e.shiftKey?10:1; let used=true;
+  switch(e.key){
+    case 'ArrowLeft': it.x=R2(it.x-st); break;
+    case 'ArrowRight':it.x=R2(it.x+st); break;
+    case 'ArrowUp':   it.y=R2(it.y-st); break;
+    case 'ArrowDown': it.y=R2(it.y+st); break;
+    case 'r': case 'R': rotateSel(); break;
+    case 'd': case 'D': dupSel(); break;
+    case 'Delete': case 'Backspace': delSel(); break;
+    default: used=false;
+  }
+  if(used){ e.preventDefault(); render(); }
+});
+
+/* =========================== AKTIONEN =========================== */
+function addItem(k){
+  const t=T[k];
+  const it={id:uid++,k,n:t.n,short:t.n.split(' ')[0],t:t.t,w:t.w,h:t.h,rot:0,
+            x:snapVal(CFG.room.w/2-t.w/2),y:snapVal(CFG.room.d/2-t.h/2),
+            basins:t.basins||0,vw:t.vw||0,dn:t.dn||0,free:!!t.free,cab:t.cab||0,cabL:false};
+  items.push(it); sel=it.id; propsFor=null; render();
+}
+function rotateSel(){ const it=items.find(i=>i.id===sel); if(!it) return;
+  it.rot=(it.rot+90)%360; propsFor=null; render(); }
+function dupSel(){ const it=items.find(i=>i.id===sel); if(!it) return;
+  const c={...it,id:uid++,x:R2(it.x+10),y:R2(it.y+10)}; items.push(c); sel=c.id; propsFor=null; render(); }
+function mirrorSel(){ const it=items.find(i=>i.id===sel); if(!it) return;
+  it.cabL=!it.cabL; render(); }
+function delSel(){ items=items.filter(i=>i.id!==sel); sel=null; render(); }
+function clearAll(){ if(confirm('Alle Objekte entfernen?')){ items=[]; sel=null; render(); } }
+function loadPreset(k){
+  const P=PRESETS[k];
+  items=[]; uid=1; planName=P.n;
+  if(P.shaft) Object.assign(CFG.shaft,P.shaft);
+  if(P.door)  Object.assign(CFG.door,P.door);
+  PRESETS[k].items.forEach(([key,x,y,rot])=>{
+    const t=T[key];
+    items.push({id:uid++,k:key,n:t.n,short:t.n.split(' ')[0],t:t.t,w:t.w,h:t.h,rot,
+      x,y,basins:t.basins||0,vw:t.vw||0,dn:t.dn||0,free:!!t.free,cab:t.cab||0,cabL:false});
+  });
+  sel=null; propsFor=null; buildForms(); render();
+}
+function toggleMeasure(){ measuring=!measuring; measure=null;
+  document.getElementById('measurebtn').classList.toggle('on',measuring); render(); }
+function fitZoom(){
+  const wrap=document.getElementById('canvaswrap'), V=vb();
+  zoom = Math.min((wrap.clientWidth-44)/(V.w*3.0),(wrap.clientHeight-44)/(V.h*3.0));
+  zoom = clamp(zoom,0.15,4); render();
+}
+
+/* =========================== PANELS =========================== */
+let propsFor='init';
+function propStats(it){
+  const f=fp(it), W=CFG.room.w, D=CFG.room.d, hr=headRange(f);
+  return `<div class="stat"><span>Abstand Nord</span><span>${R2(f.y)} cm</span></div>
+    <div class="stat"><span>Abstand Süd</span><span>${R2(D-f.y-f.h)} cm</span></div>
+    <div class="stat"><span>Abstand West</span><span>${R2(f.x)} cm</span></div>
+    <div class="stat"><span>Abstand Ost</span><span>${R2(W-f.x-f.w)} cm</span></div>
+    <div class="stat"><span>Aussenmass</span><span>${R2(f.w)} × ${R2(f.h)} cm</span></div>
+    <div class="stat"><span>Grundfläche</span><span>${(f.w*f.h/10000).toFixed(2)} m²</span></div>
+    ${hr?`<div class="stat"><span>Lichte Höhe</span><span>${Math.round(hr.min)}–${Math.round(hr.max)} cm</span></div>`:''}`;
+}
+function paintPanels(){
+  /* Auswahl – Eingabefelder nur bei Wechsel neu aufbauen, sonst verliert man beim Tippen den Fokus */
+  const box=document.getElementById('props'), it=items.find(i=>i.id===sel);
+  if(it && propsFor===sel && document.getElementById('propstats')){
+    document.getElementById('propstats').innerHTML=propStats(it);
+    ['w','h','x','y'].forEach(k=>{
+      const el=document.getElementById('p_'+k);
+      if(el && el!==document.activeElement) el.value=it[k];
+    });
+  }else if(it){
+    propsFor=sel;
+    box.innerHTML=`
+      <div style="font-weight:600;margin-bottom:8px">${esc(it.n)}</div>
+      <div class="row"><label>Breite</label><input id="p_w" type="number" step="0.5" value="${it.w}" oninput="setP('w',this.value)"><span class="unit">cm</span></div>
+      <div class="row"><label>Tiefe</label><input id="p_h" type="number" step="0.5" value="${it.h}" oninput="setP('h',this.value)"><span class="unit">cm</span></div>
+      <div class="row"><label>X ab West</label><input id="p_x" type="number" step="0.5" value="${it.x}" oninput="setP('x',this.value)"><span class="unit">cm</span></div>
+      <div class="row"><label>Y ab Nord</label><input id="p_y" type="number" step="0.5" value="${it.y}" oninput="setP('y',this.value)"><span class="unit">cm</span></div>
+      <div class="row"><label>Drehung</label>
+        <div class="seg">${[0,90,180,270].map(r=>`<button class="${it.rot===r?'on':''}" onclick="propsFor=null;setP('rot',${r})">${r}°</button>`).join('')}</div></div>
+      <div class="btnrow" style="margin:8px 0 10px">
+        <button class="btn" onclick="rotateSel()">Drehen</button>
+        <button class="btn" onclick="dupSel()">Duplizieren</button>
+        <button class="btn danger" onclick="delSel()">Löschen</button>
+        ${it.cab?`<button class="btn" onclick="mirrorSel()">Schrankseite wechseln</button>`:''}
+      </div>
+      <div id="propstats">${propStats(it)}</div>`;
+  }else{
+    propsFor=null;
+    box.innerHTML=`<div id="empty">Kein Objekt gewählt. Objekt im Plan anklicken.<br><br>
+      <span class="kbd">←↑→↓</span> 1 cm · <span class="kbd">Shift</span>+Pfeil 10 cm · <span class="kbd">R</span> drehen ·
+      <span class="kbd">D</span> duplizieren · <span class="kbd">Entf</span> löschen</div>`;
+  }
+
+  /* Prüfung */
+  const iss=analyse(), ie=document.getElementById('issues');
+  const order={e:0,w:1,i:2}, lab={e:'Konflikt',w:'Prüfen',i:'Hinweis'};
+  iss.sort((a,b)=>order[a.l]-order[b.l]);
+  ie.innerHTML = iss.length
+    ? iss.map(x=>`<div class="issue ${x.l}${x.id?' clickable':''}" ${x.id?`onclick="sel=${x.id};propsFor=null;render()"`:''}>
+        <b>${lab[x.l]}</b><span>${esc(x.t)}</span></div>`).join('')
+    : `<div class="issue k"><b>ok</b><span>Keine Konflikte. Bewegungsflächen und Abstände sind eingehalten.</span></div>`;
+
+  /* Kennzahlen */
+  const m=metrics();
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><span>Raumfläche</span><span>${m.total.toFixed(2)} m²</span></div>
+    <div class="stat"><span>Freie Bodenfläche</span><span>${m.freeArea.toFixed(2)} m²</span></div>
+    <div class="stat"><span>Grösste freie Fläche</span><span>${m.rect.w} × ${m.rect.h} cm</span></div>
+    <div class="stat"><span>Objekte</span><span>${items.length}</span></div>
+    <div class="stat"><span>Bodenaufbau</span><span>${CFG.floor.okff-CFG.floor.okrd} cm</span></div>
+    <p class="note" style="margin-top:9px">„Grösste freie Fläche“ ist das grösste achsparallele Rechteck ohne Möblierung (5-cm-Raster). Als Orientierung für die Bewegungsfreiheit im Raum.</p>`;
+
+  document.getElementById('areameta').textContent =
+    `${m.freeArea.toFixed(2)} m² frei · grösstes Feld ${m.rect.w}×${m.rect.h} cm`;
+}
+
+function setP(k,v){
+  const it=items.find(i=>i.id===sel); if(!it) return;
+  it[k]= k==='rot'? +v : parseFloat(v)||0;
+  render();
+}
+
+/* =========================== FORMULARE =========================== */
+function buildForms(){
+  /* Varianten */
+  document.getElementById('presets').innerHTML =
+    Object.entries(PRESETS).map(([k,p])=>
+      `<button onclick="loadPreset('${k}')"><b>${p.n}</b><span>${esc(p.d)}</span></button>`).join('');
+
+  /* Katalog */
+  const groups={};
+  Object.entries(T).forEach(([k,t])=>{(groups[t.g]=groups[t.g]||[]).push([k,t]);});
+  document.getElementById('catalog').innerHTML =
+    Object.entries(groups).map(([g,arr])=>
+      `<h4>${g}</h4>`+arr.map(([k,t])=>
+        `<button onclick="addItem('${k}')"><b>${t.n.replace(/ \d+×\d+$/,'')}</b><span>${t.w}×${t.h}</span></button>`).join('')
+    ).join('');
+
+  /* Raumdaten */
+  document.getElementById('roomform').innerHTML=`
+    <div class="row"><label>Breite W–O</label><input type="number" value="${CFG.room.w}" oninput="setC('room.w',this.value)"><span class="unit">cm</span></div>
+    <div class="row"><label>Tiefe N–S</label><input type="number" value="${CFG.room.d}" oninput="setC('room.d',this.value)"><span class="unit">cm</span></div>
+    <div class="row"><label>Wand N/W/S</label><input type="number" value="${CFG.wall.n}" oninput="setC('wall.n',this.value);setC('wall.w',this.value);setC('wall.s',this.value)"><span class="unit">cm</span></div>
+    <div class="row"><label>Wand Ost</label><input type="number" value="${CFG.wall.e}" oninput="setC('wall.e',this.value)"><span class="unit">cm</span></div>
+    <h4 style="font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);margin:12px 0 5px">Tür</h4>
+    <div class="row"><label>Wand</label><select onchange="setC('door.wall',this.value)">
+      ${['W','N','O','S'].map(w=>`<option value="${w}" ${CFG.door.wall===w?'selected':''}>${({W:'West (Gang)',N:'Nord',O:'Ost',S:'Süd'})[w]}</option>`).join('')}</select></div>
+    <div class="row"><label>Abstand ab N/W</label><input type="number" value="${CFG.door.off}" oninput="setC('door.off',this.value)"><span class="unit">cm</span></div>
+    <div class="row"><label>Rohbaumass</label><input type="number" value="${CFG.door.rough}" oninput="setC('door.rough',this.value)"><span class="unit">cm</span></div>
+    <div class="row"><label>Lichte Breite</label><input type="number" value="${CFG.door.clear}" oninput="setC('door.clear',this.value)"><span class="unit">cm</span></div>
+    <div class="row"><label>Anschlag</label><div class="seg">
+      <button class="${CFG.door.hinge==='A'?'on':''}" onclick="setC('door.hinge','A',1)">oben/links</button>
+      <button class="${CFG.door.hinge==='B'?'on':''}" onclick="setC('door.hinge','B',1)">unten/rechts</button></div></div>
+    <div class="row"><label>Öffnet</label><div class="seg">
+      <button class="${CFG.door.swing==='in'?'on':''}" onclick="setC('door.swing','in',1)">nach innen</button>
+      <button class="${CFG.door.swing==='out'?'on':''}" onclick="setC('door.swing','out',1)">nach aussen</button>
+      <button class="${CFG.door.swing==='slide'?'on':''}" onclick="setC('door.swing','slide',1)">Schiebetür</button></div></div>
+    <h4 style="font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);margin:12px 0 5px">Schacht DN110</h4>
+    <label class="chk"><input type="checkbox" ${CFG.shaft.on?'checked':''} onchange="setC('shaft.on',this.checked)">Schacht darstellen</label>
+    <div class="btnrow" style="margin-bottom:6px">
+      <button class="btn" onclick="shaftPreset('NO')">NO-Ecke</button>
+      <button class="btn" onclick="shaftPreset('SO')">SO-Ecke</button>
+      <button class="btn" onclick="shaftPreset('OST')">Streifen Ost</button>
+    </div>
+    <div class="row"><label>X / Y</label>
+      <input type="number" value="${CFG.shaft.x}" oninput="setC('shaft.x',this.value)">
+      <input type="number" value="${CFG.shaft.y}" oninput="setC('shaft.y',this.value)"></div>
+    <div class="row"><label>Breite / Tiefe</label>
+      <input type="number" value="${CFG.shaft.w}" oninput="setC('shaft.w',this.value)">
+      <input type="number" value="${CFG.shaft.d}" oninput="setC('shaft.d',this.value)"></div>
+    <h4 style="font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);margin:12px 0 5px">Höhenkoten</h4>
+    <div class="row"><label>OKFF</label><input type="number" value="${CFG.floor.okff}" oninput="setC('floor.okff',this.value)"><span class="unit">cm</span></div>
+    <div class="row"><label>OK Rohdecke</label><input type="number" value="${CFG.floor.okrd}" oninput="setC('floor.okrd',this.value)"><span class="unit">cm</span></div>`;
+
+  /* Dachschräge */
+  const s=CFG.slope;
+  document.getElementById('slopeform').innerHTML=`
+    <label class="chk"><input type="checkbox" ${s.on?'checked':''} onchange="setC('slope.on',this.checked)">Dachschräge berücksichtigen</label>
+    <div class="row"><label>Traufseite</label><select onchange="setC('slope.wall',this.value)">
+      ${['N','O','S','W'].map(w=>`<option value="${w}" ${s.wall===w?'selected':''}>${({N:'Norden',O:'Osten',S:'Süden',W:'Westen'})[w]}</option>`).join('')}</select></div>
+    <div class="row"><label>Kniestock</label><input type="number" value="${s.knee}" oninput="setC('slope.knee',this.value)"><span class="unit">cm</span></div>
+    <div class="row"><label>Neigung</label><input type="number" value="${s.angle}" oninput="setC('slope.angle',this.value)"><span class="unit">°</span></div>
+    <div class="row"><label>Max. Höhe</label><input type="number" value="${s.max}" oninput="setC('slope.max',this.value)"><span class="unit">cm</span></div>
+    <p class="note" style="margin-top:8px"><span class="tag x">fehlt</span> Der Steckbrief nennt keine Traufseite und keine Neigung. Aus den Koten +2.80 bis +4.80 m bei OKFF +2.70 m ergäben sich <code>10 cm</code> Kniestock und <code>210 cm</code> Maximalhöhe – das ist vor Ort nachzumessen, bevor Sie damit planen.</p>`;
+
+  /* Darstellung */
+  document.getElementById('viewform').innerHTML=`
+    <div class="row"><label>Bewegungsfläche</label><div class="seg">
+      <button class="${CFG.level==='min'?'on':''}" onclick="setC('level','min',1)">Minimum</button>
+      <button class="${CFG.level==='komf'?'on':''}" onclick="setC('level','komf',1)">Komfort</button></div></div>
+    ${[['clear','Bewegungsflächen'],['dims','Bemassung'],['chain','Bestandsketten'],
+       ['grid','10-cm-Raster'],['slope','Höhenlinien'],['labels','Objektbeschriftung']]
+      .map(([k,l])=>`<label class="chk"><input type="checkbox" ${CFG.show[k]?'checked':''} onchange="setC('show.${k}',this.checked)">${l}</label>`).join('')}
+    <div class="row" style="margin-top:8px"><label>Zoom</label>
+      <input type="range" min="0.2" max="3" step="0.05" value="${zoom}" oninput="zoom=+this.value;render()"></div>`;
+
+  /* Raster-Segment */
+  document.getElementById('snapseg').innerHTML =
+    [[0,'frei'],[1,'1 cm'],[2.5,'2.5'],[5,'5 cm'],[10,'10 cm']].map(([v,l])=>
+      `<button class="${CFG.snap===v?'on':''}" onclick="CFG.snap=${v};buildForms();render()">${l}</button>`).join('');
+
+  /* Datengrundlage */
+  document.getElementById('sources').innerHTML=`
+    <dl class="data">
+      <dt>Lichte Masse <span class="tag v">geprüft</span></dt>
+      <dd>320 × 250 cm = 8.00 m²<br><span style="font-size:11px;color:var(--ink-2)">181+96+43 = 320 · 96+78+76 = 250</span></dd>
+      <dt>Bodenaufbau <span class="tag v">geprüft</span></dt>
+      <dd>270 − 261 = 9 cm</dd>
+      <dt>Tür <span class="tag v">geprüft</span></dt>
+      <dd>78/202 Rohbau, 96 cm ab Nordwand</dd>
+      <dt>Anschlagseite und Öffnungsrichtung <span class="tag u">offen</span></dt>
+      <dd>im Steckbrief nicht angegeben</dd>
+      <dt>Schachtlage <span class="tag x">widersprüchlich</span></dt>
+      <dd>Ziff. 1 stellt die 43-cm-Zone in die Nordreihe, Ziff. 5.2 nennt die Süd-Ost-Achse. Schachttiefe fehlt ganz.</dd>
+      <dt>WC-Lage im Bestand <span class="tag x">widersprüchlich</span></dt>
+      <dd>Skizze zeigt WC unten links an der Südwand, Ziff. 5.2 bindet es an die Süd-Ost-Achse an.</dd>
+      <dt>Dachschräge <span class="tag x">unbrauchbar</span></dt>
+      <dd>Koten ohne Traufseite und Neigung</dd>
+      <dt>Achsenbeschriftung der Skizze <span class="tag x">falsch</span></dt>
+      <dd>2.50 m ist dort mit „West-Ost“ beschriftet, gehört aber zu Nord-Süd</dd>
+    </dl>
+    <p class="note" style="margin-top:10px">Bewegungsflächen nach DIN 68935 / VDI 6000 Blatt 1 und der zurückgezogenen, in der Praxis weiter verwendeten DIN 18022: Minimum WC 60 cm, Waschtisch 55 cm, Dusche und Wanne je 75 cm frontal, seitlich 20 cm zu Wand und Nachbarobjekt; Komfortwerte 90–105 cm. Für hindernisfreies Bauen gilt in der Schweiz SIA 500 mit deutlich grösseren Flächen (1.20 × 1.20 m vor jedem Apparat) – die App prüft diese Stufe nicht.</p>`;
+}
+
+function setC(path,val,rebuild){
+  const p=path.split('.'); let o=CFG;
+  for(let i=0;i<p.length-1;i++) o=o[p[i]];
+  const key=p[p.length-1];
+  o[key] = typeof o[key]==='boolean' ? !!val
+         : typeof o[key]==='number'  ? (parseFloat(val)||0) : val;
+  if(rebuild) buildForms();
+  render();
+}
+function shaftPreset(k){
+  const W=CFG.room.w, D=CFG.room.d;
+  if(k==='NO') Object.assign(CFG.shaft,{x:W-43,y:0,w:43,d:43});
+  if(k==='SO') Object.assign(CFG.shaft,{x:W-43,y:D-43,w:43,d:43});
+  if(k==='OST')Object.assign(CFG.shaft,{x:W-43,y:0,w:43,d:D});
+  buildForms(); render();
+}
+
+/* =========================== DATEI =========================== */
+function dl(name,blob){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+function saveJSON(){
+  dl('badplanung.json', new Blob([JSON.stringify({CFG,items},null,2)],{type:'application/json'}));
+}
+function loadJSON(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+      const d=JSON.parse(r.result);
+      Object.assign(CFG,d.CFG); items=d.items||[];
+      uid=Math.max(1,...items.map(i=>i.id))+1; sel=null; buildForms(); render();
+    }catch(err){ alert('Datei konnte nicht gelesen werden: '+err.message); } };
+  r.readAsText(f); ev.target.value='';
+}
+function saveSVG(){
+  const el=document.getElementById('plan').cloneNode(true);
+  el.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  el.removeAttribute('style');
+  const V=vb(); el.setAttribute('width',(V.w/2.5)+'mm'); el.setAttribute('height',(V.h/2.5)+'mm');
+  dl('badplan-1zu25.svg', new Blob([el.outerHTML],{type:'image/svg+xml'}));
+}
+
+/* =========================== START =========================== */
+buildForms();
+loadPreset('bestand');
+requestAnimationFrame(()=>{ fitZoom(); });
+window.addEventListener('resize',()=>{ render(); });
+</script>
+</body>
+</html>
